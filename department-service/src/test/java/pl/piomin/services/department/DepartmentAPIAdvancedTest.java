@@ -6,14 +6,17 @@ import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.server.mock.EnableKubernetesMockClient;
 import io.specto.hoverfly.junit.core.Hoverfly;
 import io.specto.hoverfly.junit5.HoverflyExtension;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureRestTestClient;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
+import org.springframework.test.web.servlet.client.RestTestClient;
 import org.testcontainers.containers.MongoDBContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -34,10 +37,12 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
     properties = {
         "spring.main.cloud-platform=KUBERNETES",
-        "spring.cloud.bootstrap.enabled=true"})
+        "spring.cloud.bootstrap.enabled=true"
+    })
 @ExtendWith(HoverflyExtension.class)
 @EnableKubernetesMockClient(crud = true)
 @Testcontainers
+@AutoConfigureRestTestClient
 public class DepartmentAPIAdvancedTest {
 
     private static final Logger LOG = LoggerFactory.getLogger(DepartmentAPIAdvancedTest.class);
@@ -45,6 +50,7 @@ public class DepartmentAPIAdvancedTest {
     static KubernetesClient client;
 
     @Container
+    @ServiceConnection
     static MongoDBContainer mongodb = new MongoDBContainer("mongo:5.0");
 
     @BeforeAll
@@ -89,20 +95,29 @@ public class DepartmentAPIAdvancedTest {
     }
 
     @Autowired
-    TestRestTemplate restTemplate;
+    RestTestClient restClient;
 
     @Test
     void addDepartmentTest() {
         Department department = new Department("1", "Test");
-        department = restTemplate.postForObject("/", department, Department.class);
-        assertNotNull(department);
-        assertNotNull(department.getId());
+        restClient.post()
+                .uri("/")
+                .body(department)
+                .exchange()
+                .expectBody(Department.class)
+                .value(Assertions::assertNotNull)
+                .value(department1 -> assertNotNull(department1.getId()));
     }
 
     @Test
     void findByOrganizationWithEmployees(Hoverfly hoverfly) {
         Department department = new Department("1", "Test");
-        department = restTemplate.postForObject("/", department, Department.class);
+        department = restClient.post()
+                .uri("/")
+                .body(department)
+                .exchange()
+                .returnResult(Department.class)
+                .getResponseBody();
         assertNotNull(department);
         assertNotNull(department.getId());
 
@@ -111,10 +126,15 @@ public class DepartmentAPIAdvancedTest {
                 .get("/department/" + department.getId())
                 .willReturn(success().body(json(buildEmployees())))));
 
-        Department[] departments = restTemplate
-            .getForObject("/organization/{organizationId}/with-employees", Department[].class, 1L);
-        assertEquals(1, departments.length);
-        assertEquals(1, departments[0].getEmployees().size());
+        restClient.get()
+                .uri("/organization/{organizationId}/with-employees", 1L)
+                .exchange()
+                .expectBody(Department[].class)
+                .value(Assertions::assertNotNull)
+                .value(departments -> {
+                    assertEquals(1, departments.length);
+                    assertEquals(1, departments[0].getEmployees().size());
+                });
     }
 
     private static Service buildService() {

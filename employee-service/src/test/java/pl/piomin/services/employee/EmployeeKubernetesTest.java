@@ -10,8 +10,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.web.client.RestClient;
 import org.testcontainers.containers.MongoDBContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -61,13 +61,17 @@ public class EmployeeKubernetesTest {
     }
 
 //    @Autowired
-    TestRestTemplate restTemplate;
+    RestClient restClient;
 
 //    @Test
 //    @Order(1)
     void addEmployeeTest() {
         Employee employee = new Employee("1", "1", "Test", 30, "test");
-        employee = restTemplate.postForObject("/", employee, Employee.class);
+        employee = restClient.post()
+                .uri("/")
+                .body(employee)
+                .retrieve()
+                .body(Employee.class);
         assertNotNull(employee);
         assertNotNull(employee.getId());
     }
@@ -76,11 +80,17 @@ public class EmployeeKubernetesTest {
 //    @Order(2)
     void addAndThenFindEmployeeByIdTest() {
         Employee employee = new Employee("1", "2", "Test2", 20, "test2");
-        employee = restTemplate.postForObject("/", employee, Employee.class);
+        employee = restClient.post()
+                .uri("/")
+                .body(employee)
+                .retrieve()
+                .body(Employee.class);
         assertNotNull(employee);
         assertNotNull(employee.getId());
-        employee = restTemplate
-                .getForObject("/{id}", Employee.class, employee.getId());
+        employee = restClient.get()
+                .uri("/{id}", employee.getId())
+                .retrieve()
+                .body(Employee.class);
         assertNotNull(employee);
         assertNotNull(employee.getId());
     }
@@ -88,24 +98,30 @@ public class EmployeeKubernetesTest {
 //    @Test
 //    @Order(3)
     void findAllEmployeesTest() {
-        Employee[] employees =
-                restTemplate.getForObject("/", Employee[].class);
+        Employee[] employees = restClient.get()
+                .uri("/")
+                .retrieve()
+                .body(Employee[].class);
         assertEquals(2, employees.length);
     }
 
 //    @Test
 //    @Order(3)
     void findEmployeesByDepartmentTest() {
-        Employee[] employees =
-                restTemplate.getForObject("/department/1", Employee[].class);
+        Employee[] employees = restClient.get()
+                .uri("/department/1")
+                .retrieve()
+                .body(Employee[].class);
         assertEquals(1, employees.length);
     }
 
 //    @Test
 //    @Order(3)
     void findEmployeesByOrganizationTest() {
-        Employee[] employees =
-                restTemplate.getForObject("/organization/1", Employee[].class);
+        Employee[] employees = restClient.get()
+                .uri("/organization/1")
+                .retrieve()
+                .body(Employee[].class);
         assertEquals(2, employees.length);
     }
 

@@ -1,4 +1,4 @@
-package pl.piomin.services.employee;
+package pl.piomin.services.organization;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.MethodOrderer;
@@ -13,7 +13,7 @@ import org.springframework.test.web.servlet.client.RestTestClient;
 import org.testcontainers.containers.MongoDBContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
-import pl.piomin.services.employee.model.Employee;
+import pl.piomin.services.organization.model.Organization;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -27,7 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 @TestMethodOrder(MethodOrderer.MethodName.class)
 @DirtiesContext
 @AutoConfigureRestTestClient
-class EmployeeAPITest {
+class OrganizationAPITest {
 
     @Container
     @ServiceConnection
@@ -37,64 +37,45 @@ class EmployeeAPITest {
     RestTestClient restClient;
 
     @Test
-    void addEmployeeTest() {
-        Employee employee = new Employee("1", "1", "Test", 30, "test");
+    void addOrganizationTest() {
+        Organization organization = new Organization("Test", "Test Address");
         restClient.post()
                 .uri("/")
-                .body(employee)
+                .body(organization)
                 .exchange()
-                .expectBody(Employee.class)
+                .expectBody(Organization.class)
                 .value(Assertions::assertNotNull)
-                .value(employee1 -> assertNotNull(employee1.getId()));
+                .value(org -> assertNotNull(org.getId()));
     }
 
     @Test
-    void addAndThenFindEmployeeByIdTest() {
-        Employee employee = new Employee("1", "2", "Test2", 20, "test2");
-        employee = restClient.post()
+    void addAndThenFindOrganizationByIdTest() {
+        Organization organization = new Organization("Test2", "Test Address 2");
+        organization = restClient.post()
                 .uri("/")
-                .body(employee)
+                .body(organization)
                 .exchange()
-                .returnResult(Employee.class)
+                .returnResult(Organization.class)
                 .getResponseBody();
-        assertNotNull(employee);
-        assertNotNull(employee.getId());
-        restClient.get()
-                .uri("/{id}", employee.getId())
+        assertNotNull(organization);
+        assertNotNull(organization.getId());
+        organization = restClient.get()
+                .uri("/{id}", organization.getId())
                 .exchange()
-                .expectBody(Employee.class)
-                .value(Assertions::assertNotNull)
-                .value(employee1 -> assertNotNull(employee1.getId()));
+                .returnResult(Organization.class)
+                .getResponseBody();
+        assertNotNull(organization);
+        assertNotNull(organization.getId());
     }
 
     @Test
-    void findAllEmployeesTest() {
+    void findAllOrganizationsTest() {
         restClient.get()
                 .uri("/")
                 .exchange()
-                .expectBody(Employee[].class)
+                .expectBody(Organization[].class)
                 .value(Assertions::assertNotNull)
-                .value(employees -> assertEquals(2, employees.length));
-    }
-
-    @Test
-    void findEmployeesByDepartmentTest() {
-        restClient.get()
-                .uri("/department/1")
-                .exchange()
-                .expectBody(Employee[].class)
-                .value(Assertions::assertNotNull)
-                .value(employees -> assertEquals(1, employees.length));
-    }
-
-    @Test
-    void findEmployeesByOrganizationTest() {
-        restClient.get()
-                .uri("/organization/1")
-                .exchange()
-                .expectBody(Employee[].class)
-                .value(Assertions::assertNotNull)
-                .value(employees -> assertEquals(2, employees.length));
+                .value(organizations -> assertEquals(2, organizations.length));
     }
 
 }
