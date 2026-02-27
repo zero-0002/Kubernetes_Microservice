@@ -9,9 +9,11 @@ import org.junit.jupiter.api.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureRestTestClient;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.web.servlet.client.RestTestClient;
 import org.testcontainers.containers.MongoDBContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -28,6 +30,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 @Testcontainers
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @DirtiesContext
+@AutoConfigureRestTestClient
 public class EmployeeKubernetesMockTest {
 
     private static final Logger LOG = LoggerFactory.getLogger(EmployeeKubernetesMockTest.class);
@@ -35,6 +38,7 @@ public class EmployeeKubernetesMockTest {
     static KubernetesClient client;
 
     @Container
+    @ServiceConnection
     static MongoDBContainer mongodb = new MongoDBContainer("mongo:8.0");
 
     @BeforeAll
@@ -64,26 +68,38 @@ public class EmployeeKubernetesMockTest {
     }
 
     @Autowired
-    TestRestTemplate restTemplate;
+    RestTestClient restClient;
 
     @Test
     @Order(1)
     void addEmployeeTest() {
         Employee employee = new Employee("1", "1", "Test", 30, "test");
-        employee = restTemplate.postForObject("/", employee, Employee.class);
-        assertNotNull(employee);
-        assertNotNull(employee.getId());
+        restClient.post()
+                .uri("/")
+                .body(employee)
+                .exchange()
+                .expectBody(Employee.class)
+                .value(Assertions::assertNotNull)
+                .value(employee1 -> assertNotNull(employee1.getId()));
     }
 
     @Test
     @Order(2)
     void addAndThenFindEmployeeByIdTest() {
         Employee employee = new Employee("1", "2", "Test2", 20, "test2");
-        employee = restTemplate.postForObject("/", employee, Employee.class);
+        employee = restClient.post()
+                .uri("/")
+                .body(employee)
+                .exchange()
+                .returnResult(Employee.class)
+                .getResponseBody();
         assertNotNull(employee);
         assertNotNull(employee.getId());
-        employee = restTemplate
-                .getForObject("/{id}", Employee.class, employee.getId());
+        employee = restClient.get()
+                .uri("/{id}", employee.getId())
+                .exchange()
+                .returnResult(Employee.class)
+                .getResponseBody();
         assertNotNull(employee);
         assertNotNull(employee.getId());
     }
@@ -91,25 +107,34 @@ public class EmployeeKubernetesMockTest {
     @Test
     @Order(3)
     void findAllEmployeesTest() {
-        Employee[] employees =
-                restTemplate.getForObject("/", Employee[].class);
-        assertEquals(2, employees.length);
+        restClient.get()
+                .uri("/")
+                .exchange()
+                .expectBody(Employee[].class)
+                .value(Assertions::assertNotNull)
+                .value(employees -> assertEquals(2, employees.length));
     }
 
     @Test
     @Order(3)
     void findEmployeesByDepartmentTest() {
-        Employee[] employees =
-                restTemplate.getForObject("/department/1", Employee[].class);
-        assertEquals(1, employees.length);
+        restClient.get()
+                .uri("/department/1")
+                .exchange()
+                .expectBody(Employee[].class)
+                .value(Assertions::assertNotNull)
+                .value(employees -> assertEquals(1, employees.length));
     }
 
     @Test
     @Order(3)
     void findEmployeesByOrganizationTest() {
-        Employee[] employees =
-                restTemplate.getForObject("/organization/1", Employee[].class);
-        assertEquals(2, employees.length);
+        restClient.get()
+                .uri("/organization/1")
+                .exchange()
+                .expectBody(Employee[].class)
+                .value(Assertions::assertNotNull)
+                .value(employees -> assertEquals(2, employees.length));
     }
 
 }
