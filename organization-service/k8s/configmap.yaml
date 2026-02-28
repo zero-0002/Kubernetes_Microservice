@@ -2,8 +2,10 @@ kind: ConfigMap
 apiVersion: v1
 metadata:
   name: organization
+  labels:
+    spring.cloud.kubernetes.config: "true"
 data:
   application.properties: |-
-    spring.data.mongodb.host: mongodb
-    spring.data.mongodb.database: admin
-    spring.data.mongodb.authentication-database: admin
+    spring.mongodb.host: mongodb
+    spring.mongodb.database: admin
+    spring.mongodb.authentication-database: admin
