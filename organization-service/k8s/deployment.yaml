@@ -25,3 +25,5 @@ spec:
             value: "true"
           - name: SPRING_CLOUD_KUBERNETES_SECRETS_ENABLEAPI
             value: "true"
+          - name: SPRING_CLOUD_KUBERNETES_SECRETS_ENABLED
+            value: "true"
