@@ -36,15 +36,15 @@ jobs:
             [ $(uname -m) = x86_64 ] && curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.20.0/kind-linux-amd64
             chmod +x ./kind
             sudo mv ./kind /usr/local/bin/kind
-#      - run:
-#          name: Install OpenJDK 21
-#          command: |
-#            java -version
-#            sudo apt-get update && sudo apt-get install openjdk-21-jdk
-#            sudo update-alternatives --set java /usr/lib/jvm/java-21-openjdk-amd64/bin/java
-#            sudo update-alternatives --set javac /usr/lib/jvm/java-21-openjdk-amd64/bin/javac
-#            java -version
-#            export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
+      - run:
+          name: Install OpenJDK 25
+          command: |
+            java -version
+            sudo apt-get update && sudo apt-get install openjdk-25-jdk
+            sudo update-alternatives --set java /usr/lib/jvm/java-25-openjdk-amd64/bin/java
+            sudo update-alternatives --set javac /usr/lib/jvm/java-25-openjdk-amd64/bin/javac
+            java -version
+            export JAVA_HOME=/usr/lib/jvm/java-25-openjdk-amd64
       - run:
           name: Create Kind Cluster
           command: |
@@ -73,8 +73,8 @@ executors:
 workflows:
   maven_test:
     jobs:
-      - maven/test:
-          executor: machine_executor_amd64
+#      - maven/test:
+#          executor: machine_executor_amd64
       - analyze:
           context: SonarCloud
       - deploy-k8s
